@@ -1,5 +1,10 @@
-import { Component, ComponentInterface, Element, Event, EventEmitter, Prop, State, Watch } from '@stencil/core';
+import { Component, ComponentInterface, Element, Event, EventEmitter, Host, Prop, State, Watch, h } from '@stencil/core';
 
+import { getIonMode } from '../../global/ionic-global';
+
+/**
+ * @part image - The inner `img` element.
+ */
 @Component({
   tag: 'ion-img',
   styleUrl: 'img.scss',
@@ -13,6 +18,8 @@ export class Img implements ComponentInterface {
 
   @State() loadSrc?: string;
 
+  @State() loadError?: () => void;
+
   /**
    * This attribute defines the alternative text describing the image.
    * Users will see this text displayed if the image URL is wrong,
@@ -21,7 +28,7 @@ export class Img implements ComponentInterface {
   @Prop() alt?: string;
 
   /**
-   * The image URL. This attribute is mandatory for the <img> element.
+   * The image URL. This attribute is mandatory for the `<img>` element.
    */
   @Prop() src?: string;
   @Watch('src')
@@ -29,8 +36,14 @@ export class Img implements ComponentInterface {
     this.addIO();
   }
 
-  /** Emitted when the img src is loaded */
+  /** Emitted when the img src has been set */
+  @Event() ionImgWillLoad!: EventEmitter<void>;
+
+  /** Emitted when the image has finished loading */
   @Event() ionImgDidLoad!: EventEmitter<void>;
+
+  /** Emitted when the img fails to load */
+  @Event() ionError!: EventEmitter<void>;
 
   componentDidLoad() {
     this.addIO();
@@ -40,7 +53,11 @@ export class Img implements ComponentInterface {
     if (this.src === undefined) {
       return;
     }
-    if ('IntersectionObserver' in window) {
+    if (
+      typeof (window as any) !== 'undefined' &&
+      'IntersectionObserver' in window &&
+      'IntersectionObserverEntry' in window &&
+      'isIntersecting' in window.IntersectionObserverEntry.prototype) {
       this.removeIO();
       this.io = new IntersectionObserver(data => {
         // because there will only ever be one instance
@@ -60,8 +77,17 @@ export class Img implements ComponentInterface {
   }
 
   private load() {
+    this.loadError = this.onError;
     this.loadSrc = this.src;
+    this.ionImgWillLoad.emit();
+  }
+
+  private onLoad = () => {
     this.ionImgDidLoad.emit();
+  }
+
+  private onError = () => {
+    this.ionError.emit();
   }
 
   private removeIO() {
@@ -73,11 +99,16 @@ export class Img implements ComponentInterface {
 
   render() {
     return (
-      <img
-        src={this.loadSrc}
-        alt={this.alt}
-        decoding="async"
-      />
+      <Host class={getIonMode(this)}>
+        <img
+          decoding="async"
+          src={this.loadSrc}
+          alt={this.alt}
+          onLoad={this.onLoad}
+          onError={this.loadError}
+          part="image"
+        />
+      </Host>
     );
   }
 }

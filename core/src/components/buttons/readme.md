@@ -30,7 +30,7 @@ The `<ion-buttons>` element can be positioned inside of the toolbar using a name
 <ion-toolbar>
   <ion-buttons slot="secondary">
     <ion-button>
-      <ion-icon slot="icon-only" name="contact"></ion-icon>
+      <ion-icon slot="icon-only" name="person-circle"></ion-icon>
     </ion-button>
     <ion-button>
       <ion-icon slot="icon-only" name="search"></ion-icon>
@@ -39,7 +39,7 @@ The `<ion-buttons>` element can be positioned inside of the toolbar using a name
   <ion-title>Default Buttons</ion-title>
   <ion-buttons slot="primary">
     <ion-button color="secondary">
-      <ion-icon slot="icon-only" name="more"></ion-icon>
+      <ion-icon slot="icon-only" ios="ellipsis-horizontal" md="ellipsis-vertical"></ion-icon>
     </ion-button>
   </ion-buttons>
 </ion-toolbar>
@@ -54,6 +54,15 @@ The `<ion-buttons>` element can be positioned inside of the toolbar using a name
   <ion-buttons slot="end">
     <ion-menu-button autoHide="false"></ion-menu-button>
   </ion-buttons>
+</ion-toolbar>
+
+<ion-toolbar>
+  <ion-buttons collapse="true">
+    <ion-button>
+      <ion-icon slot="icon-only" name="star"></ion-icon>
+    </ion-button>
+  </ion-buttons>
+  <ion-title>Collapsible Buttons</ion-title>
 </ion-toolbar>
 ```
 
@@ -71,7 +80,7 @@ The `<ion-buttons>` element can be positioned inside of the toolbar using a name
 <ion-toolbar>
   <ion-buttons slot="secondary">
     <ion-button>
-      <ion-icon slot="icon-only" name="contact"></ion-icon>
+      <ion-icon slot="icon-only" name="person-circle"></ion-icon>
     </ion-button>
     <ion-button>
       <ion-icon slot="icon-only" name="search"></ion-icon>
@@ -80,7 +89,7 @@ The `<ion-buttons>` element can be positioned inside of the toolbar using a name
   <ion-title>Default Buttons</ion-title>
   <ion-buttons slot="primary">
     <ion-button color="secondary">
-      <ion-icon slot="icon-only" name="more"></ion-icon>
+      <ion-icon slot="icon-only" ios="ellipsis-horizontal" md="ellipsis-vertical"></ion-icon>
     </ion-button>
   </ion-buttons>
 </ion-toolbar>
@@ -100,8 +109,201 @@ The `<ion-buttons>` element can be positioned inside of the toolbar using a name
     </ion-menu-toggle>
   </ion-buttons>
 </ion-toolbar>
+
+<ion-toolbar>
+  <ion-buttons collapse="true">
+    <ion-button>
+      <ion-icon slot="icon-only" name="star"></ion-icon>
+    </ion-button>
+  </ion-buttons>
+  <ion-title>Collapsible Buttons</ion-title>
+</ion-toolbar>
 ```
 
+
+### React
+
+```tsx
+import React from 'react';
+import { IonButtons, IonToolbar, IonBackButton, IonTitle, IonButton, IonIcon, IonMenuButton, IonContent } from '@ionic/react';
+import { personCircle, search, star, ellipsisHorizontal, ellipsisVertical } from 'ionicons/icons';
+
+export const ButtonsExample: React.FC = () => (
+  <IonContent>
+    <IonToolbar>
+      <IonButtons slot="start">
+        <IonBackButton defaultHref="/" />
+      </IonButtons>
+      <IonTitle>Back Button</IonTitle>
+    </IonToolbar>
+
+    <IonToolbar>
+      <IonButtons slot="secondary">
+        <IonButton>
+          <IonIcon slot="icon-only" icon={personCircle} />
+        </IonButton>
+        <IonButton>
+          <IonIcon slot="icon-only" icon={search} />
+        </IonButton>
+      </IonButtons>
+      <IonTitle>Default Buttons</IonTitle>
+      <IonButtons slot="primary">
+        <IonButton color="secondary">
+          <IonIcon slot="icon-only" ios={ellipsisHorizontal} md={ellipsisVertical} />
+        </IonButton>
+      </IonButtons>
+    </IonToolbar>
+
+    <IonToolbar>
+      <IonButtons slot="primary">
+        <IonButton onClick={() => {}}>
+          <IonIcon slot="icon-only" icon={star} />
+        </IonButton>
+      </IonButtons>
+      <IonTitle>Right side menu toggle</IonTitle>
+      <IonButtons slot="end">
+        <IonMenuButton autoHide={false} />
+      </IonButtons>
+    </IonToolbar>
+
+    <IonToolbar>
+      <IonButtons collapse="true">
+        <IonButton>
+          <IonIcon slot="icon-only" icon={star} />
+        </IonButton>
+      </IonButtons>
+      <IonTitle>Collapsible Buttons</IonTitle>
+    </IonToolbar>
+  </IonContent>
+);
+```
+
+
+### Stencil
+
+```tsx
+import { Component, h } from '@stencil/core';
+
+@Component({
+  tag: 'buttons-example',
+  styleUrl: 'buttons-example.css'
+})
+export class ButtonsExample {
+
+  clickedStar() {
+    console.log("Clicked star button");
+  }
+
+  render() {
+    return [
+      <ion-toolbar>
+        <ion-buttons slot="start">
+          <ion-back-button></ion-back-button>
+        </ion-buttons>
+        <ion-title>Back Button</ion-title>
+      </ion-toolbar>,
+
+      <ion-toolbar>
+        <ion-buttons slot="secondary">
+          <ion-button>
+            <ion-icon slot="icon-only" name="person-circle"></ion-icon>
+          </ion-button>
+          <ion-button>
+            <ion-icon slot="icon-only" name="search"></ion-icon>
+          </ion-button>
+        </ion-buttons>
+        <ion-title>Default Buttons</ion-title>
+        <ion-buttons slot="primary">
+          <ion-button color="secondary">
+            <ion-icon slot="icon-only" ios="ellipsis-horizontal" md="ellipsis-vertical"></ion-icon>
+          </ion-button>
+        </ion-buttons>
+      </ion-toolbar>,
+
+      <ion-toolbar>
+        <ion-buttons slot="primary">
+          <ion-button onClick={() => this.clickedStar()}>
+            <ion-icon slot="icon-only" name="star"></ion-icon>
+          </ion-button>
+        </ion-buttons>
+        <ion-title>Right side menu toggle</ion-title>
+        <ion-buttons slot="end">
+          <ion-menu-button autoHide={false}></ion-menu-button>
+        </ion-buttons>
+      </ion-toolbar>,
+
+      <ion-toolbar>
+        <ion-buttons collapse={true}>
+          <ion-button>
+            <ion-icon slot="icon-only" name="star"></ion-icon>
+          </ion-button>
+        </ion-buttons>
+        <ion-title>Collapsible Buttons</ion-title>
+      </ion-toolbar>
+    ];
+  }
+}
+```
+
+
+### Vue
+
+```html
+<template>
+  <ion-toolbar>
+    <ion-buttons slot="start">
+      <ion-back-button></ion-back-button>
+    </ion-buttons>
+    <ion-title>Back Button</ion-title>
+  </ion-toolbar>
+
+  <ion-toolbar>
+    <ion-buttons slot="secondary">
+      <ion-button>
+        <ion-icon slot="icon-only" name="person-circle"></ion-icon>
+      </ion-button>
+      <ion-button>
+        <ion-icon slot="icon-only" name="search"></ion-icon>
+      </ion-button>
+    </ion-buttons>
+    <ion-title>Default Buttons</ion-title>
+    <ion-buttons slot="primary">
+      <ion-button color="secondary">
+        <ion-icon slot="icon-only" ios="ellipsis-horizontal" md="ellipsis-vertical"></ion-icon>
+      </ion-button>
+    </ion-buttons>
+  </ion-toolbar>
+
+  <ion-toolbar>
+    <ion-buttons slot="primary">
+      <ion-button @click="clickedStar()">
+        <ion-icon slot="icon-only" name="star"></ion-icon>
+      </ion-button>
+    </ion-buttons>
+    <ion-title>Right side menu toggle</ion-title>
+    <ion-buttons slot="end">
+      <ion-menu-button auto-hide="false"></ion-menu-button>
+    </ion-buttons>
+  </ion-toolbar>
+
+  <ion-toolbar>
+    <ion-buttons collapse="true">
+      <ion-button>
+        <ion-icon slot="icon-only" name="star"></ion-icon>
+      </ion-button>
+    </ion-buttons>
+    <ion-title>Collapsible Buttons</ion-title>
+  </ion-toolbar>
+</template>
+```
+
+
+
+## Properties
+
+| Property   | Attribute  | Description                                                                                                                                                                                                                                                                                                                                                                                                                                       | Type      | Default |
+| ---------- | ---------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------- | ------- |
+| `collapse` | `collapse` | If true, buttons will disappear when its parent toolbar has fully collapsed if the toolbar is not the first toolbar. If the toolbar is the first toolbar, the buttons will be hidden and will only be shown once all toolbars have fully collapsed.  Only applies in `ios` mode with `collapse` set to `true` on `ion-header`.  Typically used for [Collapsible Large Titles](https://ionicframework.com/docs/api/title#collapsible-large-titles) | `boolean` | `false` |
 
 
 ----------------------------------------------

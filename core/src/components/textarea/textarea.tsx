@@ -1,9 +1,13 @@
-import { Component, ComponentInterface, Element, Event, EventEmitter, Method, Prop, State, Watch } from '@stencil/core';
+import { Build, Component, ComponentInterface, Element, Event, EventEmitter, Host, Method, Prop, State, Watch, h, readTask } from '@stencil/core';
 
-import { Color, Mode, StyleEventDetail, TextareaChangeEventDetail } from '../../interface';
-import { debounceEvent, findItemLabel } from '../../utils/helpers';
+import { getIonMode } from '../../global/ionic-global';
+import { Color, StyleEventDetail, TextareaChangeEventDetail } from '../../interface';
+import { debounceEvent, findItemLabel, raf } from '../../utils/helpers';
 import { createColorClasses } from '../../utils/theme';
 
+/**
+ * @virtualProp {"ios" | "md"} mode - The mode determines which platform styles to use.
+ */
 @Component({
   tag: 'ion-textarea',
   styleUrls: {
@@ -17,15 +21,11 @@ export class Textarea implements ComponentInterface {
   private nativeInput?: HTMLTextAreaElement;
   private inputId = `ion-input-${textareaIds++}`;
   private didBlurAfterEdit = false;
+  private textareaWrapper?: HTMLElement;
 
   @Element() el!: HTMLElement;
 
   @State() hasFocus = false;
-
-  /**
-   * The mode determines which platform styles to use.
-   */
-  @Prop() mode!: Mode;
 
   /**
    * The color to use from your application's color palette.
@@ -68,6 +68,20 @@ export class Textarea implements ComponentInterface {
   protected disabledChanged() {
     this.emitStyle();
   }
+
+  /**
+   * A hint to the browser for which keyboard to display.
+   * Possible values: `"none"`, `"text"`, `"tel"`, `"url"`,
+   * `"email"`, `"numeric"`, `"decimal"`, and `"search"`.
+   */
+  @Prop() inputmode?: 'none' | 'text' | 'tel' | 'url' | 'email' | 'numeric' | 'decimal' | 'search';
+
+  /**
+   * A hint to the browser for which enter key to display.
+   * Possible values: `"enter"`, `"done"`, `"go"`, `"next"`,
+   * `"previous"`, `"search"`, and `"send"`.
+   */
+  @Prop() enterkeyhint?: 'enter' | 'done' | 'go' | 'next' | 'previous' | 'search' | 'send';
 
   /**
    * If the value of the type attribute is `text`, `email`, `search`, `password`, `tel`, or `url`, this attribute specifies the maximum number of characters that the user can enter.
@@ -120,6 +134,11 @@ export class Textarea implements ComponentInterface {
   @Prop() wrap?: 'hard' | 'soft' | 'off';
 
   /**
+   * If `true`, the element height will increase based on the value.
+   */
+  @Prop() autoGrow = false;
+
+  /**
    * The value of the textarea.
    */
   @Prop({ mutable: true }) value?: string | null = '';
@@ -134,6 +153,8 @@ export class Textarea implements ComponentInterface {
     if (nativeInput && nativeInput.value !== value) {
       nativeInput.value = value;
     }
+    this.runAutoGrow();
+    this.emitStyle();
     this.ionChange.emit({ value });
   }
 
@@ -143,7 +164,7 @@ export class Textarea implements ComponentInterface {
   @Event() ionChange!: EventEmitter<TextareaChangeEventDetail>;
 
   /**
-   * Emitted when a keyboard input ocurred.
+   * Emitted when a keyboard input occurred.
    */
   @Event() ionInput!: EventEmitter<KeyboardEvent>;
 
@@ -163,12 +184,39 @@ export class Textarea implements ComponentInterface {
    */
   @Event() ionFocus!: EventEmitter<void>;
 
-  componentWillLoad() {
+  connectedCallback() {
     this.emitStyle();
+    this.debounceChanged();
+    if (Build.isBrowser) {
+      document.dispatchEvent(new CustomEvent('ionInputDidLoad', {
+        detail: this.el
+      }));
+    }
+  }
+
+  disconnectedCallback() {
+    if (Build.isBrowser) {
+      document.dispatchEvent(new CustomEvent('ionInputDidUnload', {
+        detail: this.el
+      }));
+    }
   }
 
   componentDidLoad() {
-    this.debounceChanged();
+    raf(() => this.runAutoGrow());
+  }
+
+  private runAutoGrow() {
+    const nativeInput = this.nativeInput;
+    if (nativeInput && this.autoGrow) {
+      readTask(() => {
+        nativeInput.style.height = 'auto';
+        nativeInput.style.height = nativeInput.scrollHeight + 'px';
+        if (this.textareaWrapper) {
+          this.textareaWrapper.style.height = nativeInput.scrollHeight + 'px';
+        }
+      });
+    }
   }
 
   /**
@@ -176,7 +224,7 @@ export class Textarea implements ComponentInterface {
    * `input.focus()`.
    */
   @Method()
-  setFocus() {
+  async setFocus() {
     if (this.nativeInput) {
       this.nativeInput.focus();
     }
@@ -262,14 +310,8 @@ export class Textarea implements ComponentInterface {
     this.checkClearOnEdit();
   }
 
-  hostData() {
-    return {
-      'aria-disabled': this.disabled ? 'true' : null,
-      class: createColorClasses(this.color)
-    };
-  }
-
   render() {
+    const mode = getIonMode(this);
     const value = this.getValue();
     const labelId = this.inputId + '-lbl';
     const label = findItemLabel(this.el);
@@ -278,29 +320,45 @@ export class Textarea implements ComponentInterface {
     }
 
     return (
-      <textarea
-        class="native-textarea"
-        ref={el => this.nativeInput = el}
-        autoCapitalize={this.autocapitalize}
-        autoFocus={this.autofocus}
-        disabled={this.disabled}
-        maxLength={this.maxlength}
-        minLength={this.minlength}
-        name={this.name}
-        placeholder={this.placeholder || ''}
-        readOnly={this.readonly}
-        required={this.required}
-        spellCheck={this.spellcheck}
-        cols={this.cols}
-        rows={this.rows}
-        wrap={this.wrap}
-        onInput={this.onInput}
-        onBlur={this.onBlur}
-        onFocus={this.onFocus}
-        onKeyDown={this.onKeyDown}
+      <Host
+        aria-disabled={this.disabled ? 'true' : null}
+        class={{
+          ...createColorClasses(this.color),
+          [mode]: true,
+        }}
       >
-        {value}
-      </textarea>
+        <div
+          class="textarea-wrapper"
+          ref={el => this.textareaWrapper = el}
+        >
+          <textarea
+            class="native-textarea"
+            aria-labelledby={labelId}
+            ref={el => this.nativeInput = el}
+            autoCapitalize={this.autocapitalize}
+            autoFocus={this.autofocus}
+            enterKeyHint={this.enterkeyhint}
+            inputMode={this.inputmode}
+            disabled={this.disabled}
+            maxLength={this.maxlength}
+            minLength={this.minlength}
+            name={this.name}
+            placeholder={this.placeholder || ''}
+            readOnly={this.readonly}
+            required={this.required}
+            spellcheck={this.spellcheck}
+            cols={this.cols}
+            rows={this.rows}
+            wrap={this.wrap}
+            onInput={this.onInput}
+            onBlur={this.onBlur}
+            onFocus={this.onFocus}
+            onKeyDown={this.onKeyDown}
+          >
+            {value}
+          </textarea>
+        </div>
+      </Host>
     );
   }
 }

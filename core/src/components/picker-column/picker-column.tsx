@@ -1,8 +1,9 @@
-import { Component, ComponentInterface, Element, Prop, QueueApi } from '@stencil/core';
+import { Component, ComponentInterface, Element, Event, EventEmitter, Host, Prop, Watch, h } from '@stencil/core';
 
-import { Gesture, GestureDetail, Mode, PickerColumn } from '../../interface';
-import { hapticSelectionChanged } from '../../utils/haptic';
+import { getIonMode } from '../../global/ionic-global';
+import { Gesture, GestureDetail, PickerColumn } from '../../interface';
 import { clamp } from '../../utils/helpers';
+import { hapticSelectionChanged, hapticSelectionEnd, hapticSelectionStart } from '../../utils/native/haptic';
 
 /**
  * @internal
@@ -15,7 +16,6 @@ import { clamp } from '../../utils/helpers';
   }
 })
 export class PickerColumnCmp implements ComponentInterface {
-  mode!: Mode;
 
   private bounceFrom!: number;
   private lastIndex?: number;
@@ -34,58 +34,72 @@ export class PickerColumnCmp implements ComponentInterface {
 
   @Element() el!: HTMLElement;
 
-  @Prop({ context: 'queue' }) queue!: QueueApi;
+  /**
+   * Emitted when the selected value has changed
+   * @internal
+   */
+  @Event() ionPickerColChange!: EventEmitter<PickerColumn>;
 
   /** Picker column data */
   @Prop() col!: PickerColumn;
+  @Watch('col')
+  protected colChanged() {
+    this.refresh();
+  }
 
-  componentWillLoad() {
+  async connectedCallback() {
     let pickerRotateFactor = 0;
     let pickerScaleFactor = 0.81;
 
-    if (this.mode === 'ios') {
+    const mode = getIonMode(this);
+
+    if (mode === 'ios') {
       pickerRotateFactor = -0.46;
       pickerScaleFactor = 1;
     }
 
     this.rotateFactor = pickerRotateFactor;
     this.scaleFactor = pickerScaleFactor;
-  }
-
-  async componentDidLoad() {
-    // get the height of one option
-    const colEl = this.optsEl;
-    if (colEl) {
-      this.optHeight = (colEl.firstElementChild ? colEl.firstElementChild.clientHeight : 0);
-    }
-
-    this.refresh();
 
     this.gesture = (await import('../../utils/gesture')).createGesture({
       el: this.el,
-      queue: this.queue,
       gestureName: 'picker-swipe',
       gesturePriority: 100,
       threshold: 0,
+      passive: false,
       onStart: ev => this.onStart(ev),
       onMove: ev => this.onMove(ev),
       onEnd: ev => this.onEnd(ev),
     });
-    this.gesture.setDisabled(false);
-
+    this.gesture.enable();
     this.tmrId = setTimeout(() => {
       this.noAnimate = false;
       this.refresh(true);
     }, 250);
   }
 
-  componentDidUnload() {
+  componentDidLoad() {
+    const colEl = this.optsEl;
+    if (colEl) {
+      // DOM READ
+      // We perfom a DOM read over a rendered item, this needs to happen after the first render
+      this.optHeight = (colEl.firstElementChild ? colEl.firstElementChild.clientHeight : 0);
+    }
+
+    this.refresh();
+  }
+
+  disconnectedCallback() {
     cancelAnimationFrame(this.rafId);
     clearTimeout(this.tmrId);
     if (this.gesture) {
       this.gesture.destroy();
       this.gesture = undefined;
     }
+  }
+
+  private emitColChange() {
+    this.ionPickerColChange.emit(this.col);
   }
 
   private setSelected(selectedIndex: number, duration: number) {
@@ -98,6 +112,8 @@ export class PickerColumnCmp implements ComponentInterface {
     // set what y position we're at
     cancelAnimationFrame(this.rafId);
     this.update(y, duration, true);
+
+    this.emitColChange();
   }
 
   private update(y: number, duration: number, saveY: boolean) {
@@ -207,6 +223,10 @@ export class PickerColumnCmp implements ComponentInterface {
       if (notLockedIn) {
         // isn't locked in yet, keep decelerating until it is
         this.rafId = requestAnimationFrame(() => this.decelerate());
+      } else {
+        this.velocity = 0;
+        this.emitColChange();
+        hapticSelectionEnd();
       }
 
     } else if (this.y % this.optHeight !== 0) {
@@ -232,6 +252,8 @@ export class PickerColumnCmp implements ComponentInterface {
     // some "click" events to capture
     detail.event.preventDefault();
     detail.event.stopPropagation();
+
+    hapticSelectionStart();
 
     // reset everything
     cancelAnimationFrame(this.rafId);
@@ -277,10 +299,12 @@ export class PickerColumnCmp implements ComponentInterface {
     if (this.bounceFrom > 0) {
       // bounce back up
       this.update(this.minY, 100, true);
+      this.emitColChange();
       return;
     } else if (this.bounceFrom < 0) {
       // bounce back down
       this.update(this.maxY, 100, true);
+      this.emitColChange();
       return;
     }
 
@@ -293,6 +317,18 @@ export class PickerColumnCmp implements ComponentInterface {
 
     } else {
       this.y += detail.deltaY;
+
+      if (Math.abs(detail.velocityY) < 0.05) {
+        const isScrollingUp = detail.deltaY > 0;
+        const optHeightFraction = (Math.abs(this.y) % this.optHeight) / this.optHeight;
+
+        if (isScrollingUp && optHeightFraction > 0.5) {
+          this.velocity = Math.abs(this.velocity) * -1;
+        } else if (!isScrollingUp && optHeightFraction <= 0.5) {
+          this.velocity = Math.abs(this.velocity);
+        }
+      }
+
       this.decelerate();
     }
   }
@@ -308,6 +344,15 @@ export class PickerColumnCmp implements ComponentInterface {
       }
     }
 
+    /**
+     * Only update selected value if column has a
+     * velocity of 0. If it does not, then the
+     * column is animating might land on
+     * a value different than the value at
+     * selectedIndex
+     */
+    if (this.velocity !== 0) { return; }
+
     const selectedIndex = clamp(min, this.col.selectedIndex || 0, max);
     if (this.col.prevSelected !== selectedIndex || forceRefresh) {
       const y = (selectedIndex * this.optHeight) * -1;
@@ -316,49 +361,49 @@ export class PickerColumnCmp implements ComponentInterface {
     }
   }
 
-  hostData() {
-    return {
-      class: {
-        'picker-col': true,
-        'picker-opts-left': this.col.align === 'left',
-        'picker-opts-right': this.col.align === 'right'
-      },
-      style: {
-        'max-width': this.col.columnWidth
-      }
-    };
-  }
-
   render() {
     const col = this.col;
     const Button = 'button' as any;
-    return [
-      col.prefix && (
-        <div class="picker-prefix" style={{ width: col.prefixWidth! }}>
-          {col.prefix}
-        </div>
-      ),
-      <div
-        class="picker-opts"
-        style={{ maxWidth: col.optionsWidth! }}
-        ref={el => this.optsEl = el}
+    const mode = getIonMode(this);
+    return (
+      <Host
+        class={{
+          [mode]: true,
+          'picker-col': true,
+          'picker-opts-left': this.col.align === 'left',
+          'picker-opts-right': this.col.align === 'right'
+        }}
+        style={{
+          'max-width': this.col.columnWidth
+        }}
       >
-        { col.options.map((o, index) =>
-          <Button
-            type="button"
-            class={{ 'picker-opt': true, 'picker-opt-disabled': !!o.disabled }}
-            opt-index={index}
-          >
-            {o.text}
-          </Button>
+        {col.prefix && (
+          <div class="picker-prefix" style={{ width: col.prefixWidth! }}>
+            {col.prefix}
+          </div>
         )}
-      </div>,
-      col.suffix && (
-        <div class="picker-suffix" style={{ width: col.suffixWidth! }}>
-          {col.suffix}
+        <div
+          class="picker-opts"
+          style={{ maxWidth: col.optionsWidth! }}
+          ref={el => this.optsEl = el}
+        >
+          { col.options.map((o, index) =>
+            <Button
+              type="button"
+              class={{ 'picker-opt': true, 'picker-opt-disabled': !!o.disabled }}
+              opt-index={index}
+            >
+              {o.text}
+            </Button>
+          )}
         </div>
-      )
-    ];
+        {col.suffix && (
+          <div class="picker-suffix" style={{ width: col.suffixWidth! }}>
+            {col.suffix}
+          </div>
+        )}
+      </Host>
+    );
   }
 }
 

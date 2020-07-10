@@ -12,6 +12,10 @@ The `ion-infinite-scroll` component has the infinite scroll logic. It requires a
 
 Separating the `ion-infinite-scroll` and `ion-infinite-scroll-content` components allows developers to create their own content components, if desired. This content can contain anything, from an SVG element to elements with unique CSS animations.
 
+## React
+
+The Infinite Scroll component is not supported in React.
+
 <!-- Auto Generated Below -->
 
 
@@ -74,7 +78,7 @@ export class InfiniteScrollExample {
 
 ```html
 <ion-content>
-  <ion-button onclick="toggleInfiniteScroll()" expand="block">
+  <ion-button onClick="toggleInfiniteScroll()" expand="block">
     Toggle Infinite Scroll
   </ion-button>
 
@@ -111,6 +115,88 @@ function toggleInfiniteScroll() {
 ```
 
 
+### Stencil
+
+```tsx
+import { Component, State, h } from '@stencil/core';
+
+@Component({
+  tag: 'infinite-scroll-example',
+  styleUrl: 'infinite-scroll-example.css'
+})
+export class InfiniteScrollExample {
+  private infiniteScroll: HTMLIonInfiniteScrollElement;
+
+  @State() data = [];
+
+  componentWillLoad() {
+    this.pushData();
+  }
+
+  pushData() {
+    const max = this.data.length + 20;
+    const min = max - 20;
+
+    for (var i = min; i < max; i++) {
+      this.data.push('Item ' + i);
+    }
+
+    // Stencil does not re-render when pushing to an array
+    // so create a new copy of the array
+    // https://stenciljs.com/docs/reactive-data#handling-arrays-and-objects
+    this.data = [
+      ...this.data
+    ];
+  }
+
+  loadData(ev) {
+    setTimeout(() => {
+      this.pushData();
+      console.log('Loaded data');
+      ev.target.complete();
+
+      // App logic to determine if all data is loaded
+      // and disable the infinite scroll
+      if (this.data.length == 1000) {
+        ev.target.disabled = true;
+      }
+    }, 500);
+  }
+
+  toggleInfiniteScroll() {
+    this.infiniteScroll.disabled = !this.infiniteScroll.disabled;
+  }
+
+  render() {
+    return [
+      <ion-content>
+        <ion-button onClick={() => this.toggleInfiniteScroll()} expand="block">
+          Toggle Infinite Scroll
+        </ion-button>
+
+        <ion-list>
+          {this.data.map(item =>
+            <ion-item>
+              <ion-label>{item}</ion-label>
+            </ion-item>
+          )}
+        </ion-list>
+
+        <ion-infinite-scroll
+          ref={el => this.infiniteScroll = el}
+          onIonInfinite={(ev) => this.loadData(ev)}>
+          <ion-infinite-scroll-content
+            loadingSpinner="bubbles"
+            loadingText="Loading more data...">
+          </ion-infinite-scroll-content>
+        </ion-infinite-scroll>
+      </ion-content>
+    ];
+  }
+}
+```
+
+
 
 ## Properties
 
@@ -130,7 +216,7 @@ function toggleInfiniteScroll() {
 
 ## Methods
 
-### `complete() => void`
+### `complete() => Promise<void>`
 
 Call `complete()` within the `ionInfinite` output event handler when
 your async operation has completed. For example, the `loading`
@@ -143,7 +229,7 @@ to `enabled`.
 
 #### Returns
 
-Type: `void`
+Type: `Promise<void>`
 
 
 

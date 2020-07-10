@@ -1,5 +1,6 @@
-import { Component, ComponentInterface, Element, Listen, Prop } from '@stencil/core';
+import { Component, ComponentInterface, Host, Listen, Prop, forceUpdate, h } from '@stencil/core';
 
+import { getIonMode } from '../../global/ionic-global';
 import { matchBreakpoint } from '../../utils/media';
 
 const win = window as any;
@@ -12,9 +13,6 @@ const BREAKPOINTS = ['', 'xs', 'sm', 'md', 'lg', 'xl'];
   shadow: true
 })
 export class Col implements ComponentInterface {
-  @Prop({ context: 'window' }) win!: Window;
-
-  @Element() el!: HTMLStencilElement;
 
   /**
    * The amount to offset the column, in terms of how many columns it should shift to the end
@@ -156,9 +154,9 @@ export class Col implements ComponentInterface {
    */
   @Prop() sizeXl?: string;
 
-  @Listen('window:resize')
+  @Listen('resize', { target: 'window' })
   onResize() {
-    this.el.forceUpdate();
+    forceUpdate(this);
   }
 
   // Loop through all of the breakpoints to see if the media query
@@ -167,7 +165,7 @@ export class Col implements ComponentInterface {
     let matched;
 
     for (const breakpoint of BREAKPOINTS) {
-      const matches = matchBreakpoint(this.win, breakpoint);
+      const matches = matchBreakpoint(breakpoint);
 
       // Grab the value of the property, if it exists and our
       // media query matches we return the value
@@ -232,36 +230,35 @@ export class Col implements ComponentInterface {
     };
   }
 
-  private calculateOffset() {
-    const isRTL = document.dir === 'rtl';
-
+  private calculateOffset(isRTL: boolean) {
     return this.calculatePosition('offset', isRTL ? 'margin-right' : 'margin-left');
   }
 
-  private calculatePull() {
-    const isRTL = document.dir === 'rtl';
-
+  private calculatePull(isRTL: boolean) {
     return this.calculatePosition('pull', isRTL ? 'left' : 'right');
   }
 
-  private calculatePush() {
-    const isRTL = document.dir === 'rtl';
-
+  private calculatePush(isRTL: boolean) {
     return this.calculatePosition('push', isRTL ? 'right' : 'left');
   }
 
-  hostData() {
-    return {
-      style: {
-        ...this.calculateOffset(),
-        ...this.calculatePull(),
-        ...this.calculatePush(),
-        ...this.calculateSize(),
-      }
-    };
-  }
-
   render() {
-    return <slot></slot>;
+    const isRTL = document.dir === 'rtl';
+    const mode = getIonMode(this);
+    return (
+      <Host
+        class={{
+          [mode]: true
+        }}
+        style={{
+          ...this.calculateOffset(isRTL),
+          ...this.calculatePull(isRTL),
+          ...this.calculatePush(isRTL),
+          ...this.calculateSize(),
+        }}
+      >
+        <slot></slot>
+      </Host>
+    );
   }
 }

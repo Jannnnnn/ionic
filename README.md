@@ -13,7 +13,7 @@ Ionic is based on [Web Components](https://www.webcomponents.org/introduction) a
 | **Core** | [`@ionic/core`](https://www.npmjs.com/package/@ionic/core) | [![version](https://img.shields.io/npm/v/@ionic/core/latest.svg)](https://www.npmjs.com/package/@ionic/core) | [`README.md`](core/README.md)
 | **Angular** | [`@ionic/angular`](https://www.npmjs.com/package/@ionic/angular) | [![version](https://img.shields.io/npm/v/@ionic/angular/latest.svg)](https://www.npmjs.com/package/@ionic/angular) | [`README.md`](angular/README.md)
 | **Vue** | [`@ionic/vue`](https://www.npmjs.com/package/@ionic/vue) | [![version](https://img.shields.io/npm/v/@ionic/vue/latest.svg)](https://www.npmjs.com/package/@ionic/vue) | [`README.md`](vue/README.md)
-| **React** | [`@ionic/react`](https://www.npmjs.com/package/@ionic/react) | [![version](https://img.shields.io/npm/v/@ionic/react/latest.svg)](https://www.npmjs.com/package/@ionic/react) | [`README.md`](react/README.md)
+| **React** | [`@ionic/react`](https://www.npmjs.com/package/@ionic/react) | [![version](https://img.shields.io/npm/v/@ionic/react/latest.svg)](https://www.npmjs.com/package/@ionic/react) | [`README.md`](packages/react/README.md)
 
 Looking for the `ionic-angular` package? Ionic 3 has been moved to the [`ionic-v3`](https://github.com/ionic-team/ionic-v3) repo. See [Earlier Versions](#earlier-versions).
 
@@ -30,6 +30,8 @@ Thanks for your interest in contributing! Read up on our guidelines for
 [contributing](https://github.com/ionic-team/ionic/blob/master/.github/CONTRIBUTING.md)
 and then look through our issues with a [help wanted](https://github.com/ionic-team/ionic/issues?q=is%3Aopen+is%3Aissue+label%3A%22help+wanted%22)
 label.
+
+Please note that this project is released with a [Contributor Code of Conduct](https://github.com/ionic-team/ionic/blob/master/CODE_OF_CONDUCT.md). By participating in this project you agree to abide by its terms.
 
 
 ### Examples

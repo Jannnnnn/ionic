@@ -27,12 +27,13 @@ export function getSourceFile(host: Tree, path: string): ts.SourceFile {
  */
 export function addModuleImportToRootModule(
   host: Tree,
+  projectSourceRoot: string,
   moduleName: string,
   importSrc: string
 ) {
   addModuleImportToModule(
     host,
-    normalize(`src/app/app.module.ts`),
+    normalize(`${projectSourceRoot}/app/app.module.ts`),
     moduleName,
     importSrc
   );

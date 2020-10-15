@@ -251,6 +251,15 @@ export class TextareaExample {
     <ion-textarea rows="6" cols="20" placeholder="Enter any notes here..."></ion-textarea>
   </ion-item>
 </template>
+
+<script>
+import { IonItem, IonLabe, IonTextarea } from '@ionic/vue';
+import { defineComponent } from 'vue';
+
+export default defineComponent({
+  components: { IonItem, IonLabe, IonTextarea }
+});
+</script>
 ```
 
 
@@ -286,9 +295,9 @@ export class TextareaExample {
 
 | Event       | Description                               | Type                                     |
 | ----------- | ----------------------------------------- | ---------------------------------------- |
-| `ionBlur`   | Emitted when the input loses focus.       | `CustomEvent<void>`                      |
+| `ionBlur`   | Emitted when the input loses focus.       | `CustomEvent<FocusEvent>`                |
 | `ionChange` | Emitted when the input value has changed. | `CustomEvent<TextareaChangeEventDetail>` |
-| `ionFocus`  | Emitted when the input has focus.         | `CustomEvent<void>`                      |
+| `ionFocus`  | Emitted when the input has focus.         | `CustomEvent<FocusEvent>`                |
 | `ionInput`  | Emitted when a keyboard input occurred.   | `CustomEvent<KeyboardEvent>`             |
 
 
@@ -306,8 +315,8 @@ Type: `Promise<HTMLTextAreaElement>`
 
 ### `setFocus() => Promise<void>`
 
-Sets focus on the specified `ion-textarea`. Use this method instead of the global
-`input.focus()`.
+Sets focus on the native `textarea` in `ion-textarea`. Use this method instead of the global
+`textarea.focus()`.
 
 #### Returns
 

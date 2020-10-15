@@ -5,8 +5,9 @@
  * It contains typing information for all components that exist in this project.
  */
 import { HTMLStencilElement, JSXBase } from "@stencil/core/internal";
-import { ActionSheetButton, AlertButton, AlertInput, AnimationBuilder, AutocompleteTypes, CheckboxChangeEventDetail, Color, ComponentProps, ComponentRef, DatetimeChangeEventDetail, DatetimeOptions, DomRenderFn, FooterHeightFn, FrameworkDelegate, HeaderFn, HeaderHeightFn, InputChangeEventDetail, ItemHeightFn, ItemRenderFn, ItemReorderEventDetail, MenuChangeEventDetail, NavComponent, NavOptions, OverlayEventDetail, PickerButton, PickerColumn, RadioGroupChangeEventDetail, RangeChangeEventDetail, RangeValue, RefresherEventDetail, RouteID, RouterDirection, RouterEventDetail, RouterOutletOptions, RouteWrite, ScrollBaseDetail, ScrollDetail, SearchbarChangeEventDetail, SegmentButtonLayout, SegmentChangeEventDetail, SelectChangeEventDetail, SelectInterface, SelectPopoverOption, Side, SpinnerTypes, StyleEventDetail, SwipeGestureHandler, TabBarChangedEventDetail, TabButtonClickEventDetail, TabButtonLayout, TextareaChangeEventDetail, TextFieldTypes, ToastButton, ToggleChangeEventDetail, TransitionDoneFn, TransitionInstruction, ViewController } from "./interface";
+import { ActionSheetButton, AlertButton, AlertInput, AnimationBuilder, AutocompleteTypes, CheckboxChangeEventDetail, Color, ComponentProps, ComponentRef, DatetimeChangeEventDetail, DatetimeOptions, DomRenderFn, FooterHeightFn, FrameworkDelegate, HeaderFn, HeaderHeightFn, InputChangeEventDetail, ItemHeightFn, ItemRenderFn, ItemReorderEventDetail, MenuChangeEventDetail, NavComponent, NavComponentWithProps, NavOptions, OverlayEventDetail, PickerButton, PickerColumn, RadioGroupChangeEventDetail, RangeChangeEventDetail, RangeValue, RefresherEventDetail, RouteID, RouterDirection, RouterEventDetail, RouterOutletOptions, RouteWrite, ScrollBaseDetail, ScrollDetail, SearchbarChangeEventDetail, SegmentButtonLayout, SegmentChangeEventDetail, SelectChangeEventDetail, SelectInterface, SelectPopoverOption, Side, SpinnerTypes, StyleEventDetail, SwipeGestureHandler, TabBarChangedEventDetail, TabButtonClickEventDetail, TabButtonLayout, TextareaChangeEventDetail, TextFieldTypes, ToastButton, ToggleChangeEventDetail, TransitionDoneFn, TransitionInstruction, ViewController } from "./interface";
 import { IonicSafeString } from "./utils/sanitization";
+import { NavigationHookCallback } from "./components/route/route-interface";
 import { SelectCompareFn } from "./components/select/select-interface";
 export namespace Components {
     interface IonActionSheet {
@@ -869,6 +870,10 @@ export namespace Components {
          */
         "enterkeyhint"?: 'enter' | 'done' | 'go' | 'next' | 'previous' | 'search' | 'send';
         /**
+          * This is required for a WebKit bug which requires us to blur and focus an input to properly focus the input in an item with delegatesFocus. It will no longer be needed with iOS 14.
+         */
+        "fireFocusEvents": boolean;
+        /**
           * Returns the native `<input>` element used under the hood.
          */
         "getInputElement": () => Promise<HTMLInputElement>;
@@ -921,7 +926,11 @@ export namespace Components {
          */
         "required": boolean;
         /**
-          * Sets focus on the specified `ion-input`. Use this method instead of the global `input.focus()`.
+          * Sets blur on the native `input` in `ion-input`. Use this method instead of the global `input.blur()`.
+         */
+        "setBlur": () => Promise<void>;
+        /**
+          * Sets focus on the native `input` in `ion-input`. Use this method instead of the global `input.focus()`.
          */
         "setFocus": () => Promise<void>;
         /**
@@ -1412,7 +1421,7 @@ export namespace Components {
           * @param opts The navigation options.
           * @param done The transition complete function.
          */
-        "insertPages": (insertIndex: number, insertComponents: NavComponent[], opts?: NavOptions | null | undefined, done?: TransitionDoneFn | undefined) => Promise<boolean>;
+        "insertPages": (insertIndex: number, insertComponents: NavComponent[] | NavComponentWithProps[], opts?: NavOptions | null | undefined, done?: TransitionDoneFn | undefined) => Promise<boolean>;
         /**
           * Pop a component off of the navigation stack. Navigates back from the current component.
           * @param opts The navigation options.
@@ -1462,7 +1471,7 @@ export namespace Components {
           * @param opts The navigation options.
           * @param done The transition complete function.
          */
-        "setPages": (views: any[], opts?: NavOptions | null | undefined, done?: TransitionDoneFn | undefined) => Promise<boolean>;
+        "setPages": (views: NavComponent[] | NavComponentWithProps[], opts?: NavOptions | null | undefined, done?: TransitionDoneFn | undefined) => Promise<boolean>;
         /**
           * Set the root for the current navigation stack to a component.
           * @param component The component to set as the root of the navigation stack.
@@ -1694,6 +1703,8 @@ export namespace Components {
           * The name of the control, which is submitted with the form data.
          */
         "name": string;
+        "setButtonTabindex": (value: number) => Promise<void>;
+        "setFocus": () => Promise<void>;
         /**
           * the value of the radio.
          */
@@ -1850,6 +1861,14 @@ export namespace Components {
     }
     interface IonRoute {
         /**
+          * A navigation hook that is fired when the route tries to enter. Returning `true` allows the navigation to proceed, while returning `false` causes it to be cancelled. Returning a `NavigationHookOptions` object causes the router to redirect to the path specified.
+         */
+        "beforeEnter"?: NavigationHookCallback;
+        /**
+          * A navigation hook that is fired when the route tries to leave. Returning `true` allows the navigation to proceed, while returning `false` causes it to be cancelled. Returning a `NavigationHookOptions` object causes the router to redirect to the path specified.
+         */
+        "beforeLeave"?: NavigationHookCallback;
+        /**
           * Name of the component to load/select in the navigation outlet (`ion-tabs`, `ion-nav`) when the route matches.  The value of this property is not always the tagname of the component to load, in `ion-tabs` it actually refers to the name of the `ion-tab` to select.
          */
         "component": string;
@@ -1877,6 +1896,7 @@ export namespace Components {
           * Go back to previous page in the window.history.
          */
         "back": () => Promise<void>;
+        "canTransition": () => Promise<string | boolean>;
         "navChanged": (direction: RouterDirection) => Promise<boolean>;
         "printDebug": () => Promise<void>;
         /**
@@ -2422,6 +2442,10 @@ export namespace Components {
          */
         "enterkeyhint"?: 'enter' | 'done' | 'go' | 'next' | 'previous' | 'search' | 'send';
         /**
+          * This is required for a WebKit bug which requires us to blur and focus an input to properly focus the input in an item with delegatesFocus. It will no longer be needed with iOS 14.
+         */
+        "fireFocusEvents": boolean;
+        /**
           * Returns the native `<textarea>` element used under the hood.
          */
         "getInputElement": () => Promise<HTMLTextAreaElement>;
@@ -2462,7 +2486,11 @@ export namespace Components {
          */
         "rows"?: number;
         /**
-          * Sets focus on the specified `ion-textarea`. Use this method instead of the global `input.focus()`.
+          * Sets blur on the native `textarea` in `ion-textarea`. Use this method instead of the global `textarea.blur()`.
+         */
+        "setBlur": () => Promise<void>;
+        /**
+          * Sets focus on the native `textarea` in `ion-textarea`. Use this method instead of the global `textarea.focus()`.
          */
         "setFocus": () => Promise<void>;
         /**
@@ -4181,6 +4209,10 @@ declare namespace LocalJSX {
          */
         "enterkeyhint"?: 'enter' | 'done' | 'go' | 'next' | 'previous' | 'search' | 'send';
         /**
+          * This is required for a WebKit bug which requires us to blur and focus an input to properly focus the input in an item with delegatesFocus. It will no longer be needed with iOS 14.
+         */
+        "fireFocusEvents"?: boolean;
+        /**
           * A hint to the browser for which keyboard to display. Possible values: `"none"`, `"text"`, `"tel"`, `"url"`, `"email"`, `"numeric"`, `"decimal"`, and `"search"`.
          */
         "inputmode"?: 'none' | 'text' | 'tel' | 'url' | 'email' | 'numeric' | 'decimal' | 'search';
@@ -4215,7 +4247,7 @@ declare namespace LocalJSX {
         /**
           * Emitted when the input loses focus.
          */
-        "onIonBlur"?: (event: CustomEvent<void>) => void;
+        "onIonBlur"?: (event: CustomEvent<FocusEvent>) => void;
         /**
           * Emitted when the value has changed.
          */
@@ -4223,7 +4255,7 @@ declare namespace LocalJSX {
         /**
           * Emitted when the input has focus.
          */
-        "onIonFocus"?: (event: CustomEvent<void>) => void;
+        "onIonFocus"?: (event: CustomEvent<FocusEvent>) => void;
         /**
           * Emitted when a keyboard input occurred.
          */
@@ -4410,6 +4442,10 @@ declare namespace LocalJSX {
           * The mode determines which platform styles to use.
          */
         "mode"?: "ios" | "md";
+        /**
+          * Emitted when the color changes.
+         */
+        "onIonColor"?: (event: CustomEvent<StyleEventDetail>) => void;
         /**
           * Emitted when the styles change.
          */
@@ -5096,6 +5132,14 @@ declare namespace LocalJSX {
     }
     interface IonRoute {
         /**
+          * A navigation hook that is fired when the route tries to enter. Returning `true` allows the navigation to proceed, while returning `false` causes it to be cancelled. Returning a `NavigationHookOptions` object causes the router to redirect to the path specified.
+         */
+        "beforeEnter"?: NavigationHookCallback;
+        /**
+          * A navigation hook that is fired when the route tries to leave. Returning `true` allows the navigation to proceed, while returning `false` causes it to be cancelled. Returning a `NavigationHookOptions` object causes the router to redirect to the path specified.
+         */
+        "beforeLeave"?: NavigationHookCallback;
+        /**
           * Name of the component to load/select in the navigation outlet (`ion-tabs`, `ion-nav`) when the route matches.  The value of this property is not always the tagname of the component to load, in `ion-tabs` it actually refers to the name of the `ion-tab` to select.
          */
         "component": string;
@@ -5709,6 +5753,10 @@ declare namespace LocalJSX {
          */
         "enterkeyhint"?: 'enter' | 'done' | 'go' | 'next' | 'previous' | 'search' | 'send';
         /**
+          * This is required for a WebKit bug which requires us to blur and focus an input to properly focus the input in an item with delegatesFocus. It will no longer be needed with iOS 14.
+         */
+        "fireFocusEvents"?: boolean;
+        /**
           * A hint to the browser for which keyboard to display. Possible values: `"none"`, `"text"`, `"tel"`, `"url"`, `"email"`, `"numeric"`, `"decimal"`, and `"search"`.
          */
         "inputmode"?: 'none' | 'text' | 'tel' | 'url' | 'email' | 'numeric' | 'decimal' | 'search';
@@ -5731,7 +5779,7 @@ declare namespace LocalJSX {
         /**
           * Emitted when the input loses focus.
          */
-        "onIonBlur"?: (event: CustomEvent<void>) => void;
+        "onIonBlur"?: (event: CustomEvent<FocusEvent>) => void;
         /**
           * Emitted when the input value has changed.
          */
@@ -5739,7 +5787,7 @@ declare namespace LocalJSX {
         /**
           * Emitted when the input has focus.
          */
-        "onIonFocus"?: (event: CustomEvent<void>) => void;
+        "onIonFocus"?: (event: CustomEvent<FocusEvent>) => void;
         /**
           * Emitted when a keyboard input occurred.
          */

@@ -30,7 +30,7 @@ interface TabUrls {
 }
 
 interface IonTabBarState {
-  activeTab: string | undefined;
+  activeTab?: string;
   tabs: { [key: string]: TabUrls; };
 }
 
@@ -51,24 +51,55 @@ class IonTabBarUnwrapped extends React.PureComponent<InternalProps, IonTabBarSta
       }
     });
 
-    const tabKeys = Object.keys(tabs);
-    const activeTab = tabKeys
-      .find(key => {
-        const href = tabs[key].originalHref;
-        return props.routeInfo!.pathname.startsWith(href);
-      }) || tabKeys[0];
-
     this.state = {
-      activeTab,
       tabs
     };
 
     this.onTabButtonClick = this.onTabButtonClick.bind(this);
     this.renderTabButton = this.renderTabButton.bind(this);
     this.setActiveTabOnContext = this.setActiveTabOnContext.bind(this);
+    this.selectTab = this.selectTab.bind(this);
+  }
+
+  componentDidMount() {
+    const tabs = this.state.tabs;
+    const tabKeys = Object.keys(tabs);
+    const activeTab = tabKeys
+      .find(key => {
+        const href = tabs[key].originalHref;
+        return this.props.routeInfo!.pathname.startsWith(href);
+      });
+
+    if (activeTab) {
+      this.setState({
+        activeTab
+      });
+    }
+  }
+
+  componentDidUpdate() {
+    if (this.state.activeTab) {
+      this.setActiveTabOnContext(this.state.activeTab);
+    }
   }
 
   setActiveTabOnContext = (_tab: string) => { };
+
+  selectTab(tab: string) {
+    const tabUrl = this.state.tabs[tab];
+    if (tabUrl) {
+      this.onTabButtonClick(new CustomEvent('ionTabButtonClick', {
+        detail: {
+          href: tabUrl.currentHref,
+          tab,
+          selected: tab === this.state.activeTab,
+          routeOptions: undefined
+        }
+      }));
+      return true;
+    }
+    return false;
+  }
 
   static getDerivedStateFromProps(props: InternalProps, state: IonTabBarState) {
     const tabs = { ...state.tabs };
@@ -93,6 +124,7 @@ class IonTabBarUnwrapped extends React.PureComponent<InternalProps, IonTabBarSta
         }
       }
     });
+
     const { activeTab: prevActiveTab } = state;
     if (activeTab && prevActiveTab) {
       const prevHref = state.tabs[prevActiveTab].currentHref;
@@ -104,7 +136,7 @@ class IonTabBarUnwrapped extends React.PureComponent<InternalProps, IonTabBarSta
           originalRouteOptions: tabs[activeTab].originalRouteOptions,
           currentRouteOptions: props.routeInfo?.routeOptions
         };
-        if (props.routeInfo.routeAction === 'pop') {
+        if (props.routeInfo.routeAction === 'pop' && (activeTab !== prevActiveTab)) {
           // If navigating back and the tabs change, set the prev tab back to its original href
           tabs[prevActiveTab] = {
             originalHref: tabs[prevActiveTab].originalHref,
@@ -142,7 +174,7 @@ class IonTabBarUnwrapped extends React.PureComponent<InternalProps, IonTabBarSta
       if (this.props.onIonTabsDidChange) {
         this.props.onIonTabsDidChange(new CustomEvent('ionTabDidChange', { detail: { tab: e.detail.tab } }));
       }
-
+      this.setActiveTabOnContext(e.detail.tab);
       this.context.changeTab(e.detail.tab, currentHref, e.detail.routeOptions);
     }
   }

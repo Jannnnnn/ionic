@@ -19,9 +19,19 @@ import { createColorClasses } from '../../utils/theme';
 export class Textarea implements ComponentInterface {
 
   private nativeInput?: HTMLTextAreaElement;
-  private inputId = `ion-input-${textareaIds++}`;
+  private inputId = `ion-textarea-${textareaIds++}`;
   private didBlurAfterEdit = false;
   private textareaWrapper?: HTMLElement;
+
+  /**
+   * This is required for a WebKit bug which requires us to
+   * blur and focus an input to properly focus the input in
+   * an item with delegatesFocus. It will no longer be needed
+   * with iOS 14.
+   *
+   * @internal
+   */
+  @Prop() fireFocusEvents = true;
 
   @Element() el!: HTMLElement;
 
@@ -177,12 +187,12 @@ export class Textarea implements ComponentInterface {
   /**
    * Emitted when the input loses focus.
    */
-  @Event() ionBlur!: EventEmitter<void>;
+  @Event() ionBlur!: EventEmitter<FocusEvent>;
 
   /**
    * Emitted when the input has focus.
    */
-  @Event() ionFocus!: EventEmitter<void>;
+  @Event() ionFocus!: EventEmitter<FocusEvent>;
 
   connectedCallback() {
     this.emitStyle();
@@ -220,13 +230,25 @@ export class Textarea implements ComponentInterface {
   }
 
   /**
-   * Sets focus on the specified `ion-textarea`. Use this method instead of the global
-   * `input.focus()`.
+   * Sets focus on the native `textarea` in `ion-textarea`. Use this method instead of the global
+   * `textarea.focus()`.
    */
   @Method()
   async setFocus() {
     if (this.nativeInput) {
       this.nativeInput.focus();
+    }
+  }
+
+  /**
+   * Sets blur on the native `textarea` in `ion-textarea`. Use this method instead of the global
+   * `textarea.blur()`.
+   * @internal
+   */
+  @Method()
+  async setBlur() {
+    if (this.nativeInput) {
+      this.nativeInput.blur();
     }
   }
 
@@ -292,18 +314,22 @@ export class Textarea implements ComponentInterface {
     this.ionInput.emit(ev as KeyboardEvent);
   }
 
-  private onFocus = () => {
+  private onFocus = (ev: FocusEvent) => {
     this.hasFocus = true;
     this.focusChange();
 
-    this.ionFocus.emit();
+    if (this.fireFocusEvents) {
+      this.ionFocus.emit(ev);
+    }
   }
 
-  private onBlur = () => {
+  private onBlur = (ev: FocusEvent) => {
     this.hasFocus = false;
     this.focusChange();
 
-    this.ionBlur.emit();
+    if (this.fireFocusEvents) {
+      this.ionBlur.emit(ev);
+    }
   }
 
   private onKeyDown = () => {
@@ -322,10 +348,9 @@ export class Textarea implements ComponentInterface {
     return (
       <Host
         aria-disabled={this.disabled ? 'true' : null}
-        class={{
-          ...createColorClasses(this.color),
+        class={createColorClasses(this.color, {
           [mode]: true,
-        }}
+        })}
       >
         <div
           class="textarea-wrapper"
